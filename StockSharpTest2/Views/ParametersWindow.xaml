@@ -1,0 +1,44 @@
+﻿<Window x:Class="Collect.Views.ParametersWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Collect.Views"
+        mc:Ignorable="d"
+        Title="Параметры" Height="360" Width="540" WindowStartupLocation="CenterOwner" ResizeMode="NoResize" Closing="Window_Closing">
+
+    <Window.Resources>
+        <local:EncryptedStringConverter x:Key="EncryptedStringConverter"/>
+        <local:EnumMatchToBooleanConverter x:Key="EnumConverter"/>
+    </Window.Resources>
+
+    <Grid>
+        <StackPanel x:Name="mainStackPanel" HorizontalAlignment="Left" Height="314" Margin="10,10,0,0" VerticalAlignment="Top" Width="514">
+            <CheckBox x:Name="autoConnectCheckBox" IsChecked="{Binding Path=AutoConnect, Mode=TwoWay}"  Content="Автоматическое подключение к брокеру" FontSize="16" VerticalContentAlignment="Center"/>
+            <CheckBox x:Name="autoReconnectCheckBox" IsChecked="{Binding Path=AutoReconnect, Mode=TwoWay}" Content="Автоматическое переподключение" Margin="0,4,0,0" FontSize="16" HorizontalAlignment="Left" BorderThickness="1" VerticalContentAlignment="Center" Width="514"/>
+            <StackPanel Height="24" Orientation="Horizontal" Margin="0,4,0,0">
+                <TextBox x:Name="autoReconnectTimeTextBox" Text="{Binding Path=AutoReconnectTime}" Height="20" TextWrapping="Wrap" Width="28" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+                <TextBlock x:Name="textBlock" TextWrapping="Wrap" Margin="8,0,0,0" Height="20" FontSize="16"><Run Text="Интервал переподключения (сек"/><Run Text="."/><Run Text=")"/></TextBlock>
+            </StackPanel>
+            <Separator Height="2" Margin="-12,4,-12,0"/>
+            <StackPanel Height="24" Orientation="Horizontal" Margin="0,4,0,0">
+                <TextBox x:Name="loginTextBox" Text="{Binding Path=Login}" Height="20" TextWrapping="Wrap" Width="194" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Margin="0,2"/>
+                <TextBlock x:Name="textBlock1" TextWrapping="Wrap" Margin="8,0,0,0" Height="20" FontSize="16" Text="Логин"/>
+            </StackPanel>
+            <StackPanel Height="24" Orientation="Horizontal" Margin="0,4,0,0">
+                <PasswordBox x:Name="passwordTextBox" Height="20" Width="194" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Margin="0,2"/>
+                <TextBlock x:Name="textBlock2" TextWrapping="Wrap" Margin="8,0,0,0" Height="20" FontSize="16" Text="Пароль"/>
+            </StackPanel>
+            <Separator Height="2" Margin="-12,4"/>
+            <RadioButton x:Name="dataStorageRadioButton1" IsChecked="{Binding Path=DataStorage, Mode=TwoWay,
+                Converter={StaticResource EnumConverter}, ConverterParameter=Local}"  Content="Локальное хранилище" GroupName="DataStorage" FontSize="16" VerticalContentAlignment="Center"/>
+            <RadioButton x:Name="dataStorageRadioButton2" IsChecked="{Binding Path=DataStorage, Mode=TwoWay,
+                Converter={StaticResource EnumConverter}, ConverterParameter=Cloud}" Content="Облачное хранилище" GroupName="DataStorage" FontSize="16" VerticalContentAlignment="Center"/>
+            <Separator Height="2" Margin="-12,4"/>
+            <RadioButton x:Name="serverMainRadioButton" IsChecked="{Binding ServerType, ConverterParameter=Main, Converter={StaticResource EnumConverter}, Mode=TwoWay}"  Content="Главный сервер" GroupName="ServerType" FontSize="16" VerticalContentAlignment="Center"/>
+            <RadioButton x:Name="serverMain2RadioButton" IsChecked="{Binding ServerType, ConverterParameter=Main2, Converter={StaticResource EnumConverter}, Mode=TwoWay}"  Content="Главный сервер 2" GroupName="ServerType" FontSize="16" VerticalContentAlignment="Center"/>
+            <RadioButton x:Name="serverDemoRadioButton" IsChecked="{Binding ServerType, ConverterParameter=Demo, Converter={StaticResource EnumConverter}, Mode=TwoWay}" Content="Демо сервер" GroupName="ServerType" FontSize="16" VerticalContentAlignment="Center"/>
+        </StackPanel>
+
+    </Grid>
+</Window>

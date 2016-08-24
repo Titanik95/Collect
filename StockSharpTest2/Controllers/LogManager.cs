@@ -1,0 +1,37 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Collect.Controllers
+{
+    class LogManager
+    {
+        string filePath;
+
+        public LogManager()
+        {
+            string directory = Environment.CurrentDirectory + Properties.Resources.LogDirectory;
+            Directory.CreateDirectory(directory);
+            filePath = directory + DateTime.Now.ToShortDateString() + ".txt";
+        }
+
+        async public void Log(string message)
+        {
+            using (StreamWriter sw = new StreamWriter(filePath, true))
+            {
+                await sw.WriteLineAsync(DateTime.Now.ToString("HH:mm:ss") + " - " + message);
+            }
+        }
+
+        async public void Log(string header, string message)
+        {
+            using (StreamWriter sw = new StreamWriter(filePath, true))
+            {
+                await sw.WriteLineAsync(DateTime.Now.ToString("HH:mm:ss") + " - " + header + " - " + message);
+            }
+        }
+    }
+}
