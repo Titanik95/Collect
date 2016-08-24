@@ -7,6 +7,7 @@ using System.Windows.Data;
 using System.Security.Cryptography;
 using System.ComponentModel;
 using System.Text;
+using Collect.Controllers;
 
 namespace Collect.Views
 {
@@ -16,9 +17,9 @@ namespace Collect.Views
     public partial class ParametersWindow : Window
     {
         Parameters parameters;
-        MainWindow mainWindow;
+        MainController mainWindow;
 
-        public ParametersWindow(Parameters p, MainWindow mw)
+        public ParametersWindow(Parameters p, MainController mw)
         {
             InitializeComponent();
 

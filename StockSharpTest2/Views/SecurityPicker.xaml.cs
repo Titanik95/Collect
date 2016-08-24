@@ -6,6 +6,7 @@ using Collect.Models;
 using System.Windows.Media;
 using System.Timers;
 using System.Threading;
+using Collect.Controllers;
 
 namespace Collect.Views
 {
@@ -16,15 +17,15 @@ namespace Collect.Views
         string[] columnHeaders = { "Тикер", "Биржа", "Тип" };
         List<Security> securities;
         bool comboBoxesInitialized;
-        MainWindow mainWindow;
+        MainController mainWindow;
 
         System.Timers.Timer popupTimer;
         double popupTimerOpenTime = 1500;
         CancellationTokenSource cts;
 
-        public SecurityPicker(MainWindow mw)
+        public SecurityPicker(MainController mw)
         {
-            Owner = mw;
+            //Owner = mw;
             mainWindow = mw;
 
             InitializeComponent();

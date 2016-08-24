@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace Collect.Models
 {
     [Serializable]
-    class TrackingSecurity : INotifyPropertyChanged
+    public class TrackingSecurity : INotifyPropertyChanged
     {
         Security security;
         int minimumVolume;

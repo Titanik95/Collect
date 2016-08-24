@@ -82,6 +82,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Controllers\LogManager.cs" />
+    <Compile Include="Controllers\MainController.cs" />
     <Compile Include="Models\Parameters.cs" />
     <Compile Include="Models\TrackingSecurity.cs" />
     <Compile Include="Models\Security.cs" />

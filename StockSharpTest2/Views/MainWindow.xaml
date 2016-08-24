@@ -40,19 +40,6 @@
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" Width="100" Height="30">
-                                    <Button Name="pauseButton" Width="30" Height="30" Background="#00000000" BorderBrush="#00000000" Click="pauseButton_Click" Visibility="{Binding Path=Tracking, Converter={StaticResource BoolToVisConverter} }">
-                                        <Canvas Width="30" Height="30">
-                                            <Line Stroke="Black" X1="8" X2="8" Y1="24" Y2="3" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" />
-                                            <Line Stroke="Black" X1="19" X2="19" Y1="24" Y2="3" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" />
-                                        </Canvas>
-                                    </Button>
-                                    <Button Name="playButton" Width="30" Height="30" Background="#00000000" BorderBrush="#00000000" Margin="0" Click="playButton_Click" Visibility="{Binding Path=TrackingNot, Converter={StaticResource BoolToVisConverter} }">
-                                        <Canvas Width="30" Height="30">
-                                            <Line Stroke="Black" X1="22" X2="6" Y1="13" Y2="3" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" />
-                                            <Line Stroke="Black" X1="6" X2="22" Y1="24" Y2="13" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" />
-                                            <Line Stroke="Black" X1="5" X2="5" Y1="24" Y2="3" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" />
-                                        </Canvas>
-                                    </Button>
                                     <Button x:Name="CloseButton" Width="30" Height="30" Background="#00000000" BorderBrush="#00000000" Click="closeButton">
                                         <Canvas Width="30" Height="30">
                                             <Line Stroke="Black" X1="22" X2="5" Y1="24" Y2="3" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" />
@@ -101,34 +88,6 @@
                                 <Line X1="23" Fill="Black" StrokeThickness="3" Stroke="Black" StrokeEndLineCap="Round" StrokeStartLineCap="Round" StrokeMiterLimit="0" StrokeLineJoin="Round" Margin="5,13,0,0" Y1="4" Y2="4" X2="1" />
                             </Canvas>
                             <TextBlock Text="Добавить тикер" Margin="0" Width="129" FontSize="13.333" Height="25" VerticalAlignment="Center" TextWrapping="Wrap" HorizontalAlignment="Left"/>
-                        </StackPanel>
-                    </Button>
-                    <Button Name="pauseAllTrackingsButton" Width="160" Height="40" Background="#00000000" BorderBrush="#00000000" Click="pauseAllTrackingsButton_Click" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Left" Margin="0">
-                        <StackPanel Orientation="Horizontal" Margin="0" Width="166" Height="40" HorizontalAlignment="Left" VerticalAlignment="Center" >
-                            <Canvas Width="40" Height="40">
-                                <Line Stroke="Black" X1="11" X2="11" Y1="31" Y2="7" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" />
-                                <Line Stroke="Black" X1="24" X2="24" Y1="31" Y2="7" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" />
-                            </Canvas>
-                            <TextBlock Text="Остановить отслеживание" Margin="0" Width="129" FontSize="13.333" Height="38" TextWrapping="Wrap" HorizontalAlignment="Left"/>
-                        </StackPanel>
-                    </Button>
-                    <Button Name="startAllTrackingsButton" Width="160" Height="40" Background="#00000000" BorderBrush="#00000000" Click="startAllTrackingsButton_Click" Visibility="Collapsed" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Left" Margin="0">
-                        <StackPanel Orientation="Horizontal" Margin="0" Width="166" Height="40" HorizontalAlignment="Left" VerticalAlignment="Center" >
-                            <Canvas Width="40" Height="40">
-                                <Line Stroke="Black" X1="26" X2="10" Y1="19" Y2="8" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" />
-                                <Line Stroke="Black" X1="10" X2="26" Y1="30" Y2="19" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" />
-                                <Line Stroke="Black" X1="10" X2="10" Y1="30" Y2="8" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" />
-                            </Canvas>
-                            <TextBlock Text="Продолжить отслеживание" Margin="0" Width="129" FontSize="13.333" Height="38" TextWrapping="Wrap" HorizontalAlignment="Left"/>
-                        </StackPanel>
-                    </Button>
-                    <Button Name="closeAllTrackingsButton" Width="160" Height="40" Background="#00000000" BorderBrush="#00000000" Click="closeAllTrackingsButton_Click" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Left" Margin="0" VerticalContentAlignment="Center">
-                        <StackPanel Orientation="Horizontal" Margin="0" Width="166" Height="40" HorizontalAlignment="Left" VerticalAlignment="Center" >
-                            <Canvas Width="40" Height="40">
-                                <Line Stroke="Black" X1="27" X2="8" Y1="32" Y2="7" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" />
-                                <Line Stroke="Black" X1="8" X2="27" Y1="32" Y2="7" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" />
-                            </Canvas>
-                            <TextBlock Text="Удалить все отслеживания" Margin="0" Width="129" FontSize="13.333" Height="38" TextWrapping="Wrap" HorizontalAlignment="Left"/>
                         </StackPanel>
                     </Button>
                     <Separator Margin="0,8" BorderBrush="Red">
