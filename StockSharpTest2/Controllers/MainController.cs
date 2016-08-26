@@ -17,12 +17,14 @@ namespace Collect.Controllers
     {
 		// Главное окно
 		Window mainWindow;
-		// Сервер менеджер
+		// Менеджер сервера брокера
 		ServerManager serverManager;
+		// Менеджер данных
+		DataManager dataManager;
 		// Окно подключения
 		ConnectWindow cw;
-		// Отслеживаемые инструменты
-		ObservableCollection<TrackingSecurity> trackingSecurities;
+		// Список отслеживаемых инструментов
+		Dictionary<string, TrackingSecurity> trackingSecurities;
 		// Таймер переподключения
 		Timer autoReconnectTimer;
 		// Лог-менеджер
@@ -31,46 +33,45 @@ namespace Collect.Controllers
 		Parameters parameters;
 
 		// Подключен ли к серверу
-		public bool IsConnected { get; set; }
+		public bool IsConnected { get { return serverManager.IsConnected; } }
 
 		public MainController(MainWindow m)
 		{
 			mainWindow = m;
 			serverManager = new ServerManager();
-			trackingSecurities = new ObservableCollection<TrackingSecurity>();
+			dataManager = new DataManager();
 			logManager = new LogManager();
 
 			InitParameters();
 			InitServerManager();
 			InitTrackingSecurities();
 			InitTimers();
+
+			dataManager.OnUpdateVolumes += OnVolumesUpdate;
+			dataManager.SetDataStorage(parameters.DataStorage);
 		}
 
 		/// <summary>
 		/// Инициализация отслеживаемых инструментов из файла
 		/// </summary>
-		async void InitTrackingSecurities()
+		void InitTrackingSecurities()
 		{
-			trackingSecurities = new ObservableCollection<TrackingSecurity>();
-
 			using (FileStream fs = new FileStream(Properties.Resources.SecuritiesFileName, FileMode.OpenOrCreate))
 			{
 				BinaryFormatter bf = new BinaryFormatter();
 
 				try
 				{
-					var ts = ((ObservableCollection<TrackingSecurity>)bf.Deserialize(fs));
-					foreach (var s in ts)
-					{
-						trackingSecurities.Add(s);
-						await serverManager.AddTrackingSecurity(s);
-					}
+					trackingSecurities = ((Dictionary<string, TrackingSecurity>)bf.Deserialize(fs));
 				}
 				catch (Exception ex)
 				{
+					trackingSecurities = new Dictionary<string, TrackingSecurity>();
 					logManager.Log("Ошибка десериализации инструментов", ex.Message);
 				}
 			}
+			foreach (var ts in trackingSecurities)
+				OnTrackingSecurityAdd(ts.Value);
 		}
 
 		/// <summary>
@@ -105,7 +106,6 @@ namespace Collect.Controllers
 			serverManager = new ServerManager();
 			serverManager.OnConnect += OnServerConnect;
 			serverManager.OnDisconnect += OnServerDisconnect;
-			serverManager.SetDataStorage(parameters.DataStorage);
 		}
 
 		/// <summary>
@@ -119,30 +119,25 @@ namespace Collect.Controllers
 			autoReconnectTimer.Elapsed += OnReconnectTimer;
 		}
 
-
-		public ObservableCollection<TrackingSecurity> GetTrackingSecurities()
-		{
-			return trackingSecurities;
-		}
-
 		public List<Security> GetSecuritiesList()
 		{
 			return serverManager.GetSecuritiesList();
 		}
 
-		public async Task<bool> AddSecurity(Security security)
+		public bool AddSecurity(Security security)
 		{
-			bool result = false;
-			TrackingSecurity ts = new TrackingSecurity(security, 0, 0, true, 2000);
-			if (await serverManager.AddTrackingSecurity(ts))
-			{
-				trackingSecurities.Add(ts);
-				result = true;
-			}
-			else
-				result = false;
+			if (trackingSecurities.ContainsKey(security.Code))
+				return false;
 
-			return result;
+			TrackingSecurity ts = new TrackingSecurity(security, 0, 1000);
+			trackingSecurities.Add(security.Code, ts);
+			// Если подключены к серверу, то начать прослушивать данный инструмент
+			serverManager.StartListenSecurity(security.Code);
+			dataManager.AddSecurity(security.Code);
+			// Уведомление главного окна о добавлении нового отслеживаемого инструмента
+			OnTrackingSecurityAdd(ts);
+
+			return true;
 		}
 
 		public void ShowConnectWindow()
@@ -179,10 +174,10 @@ namespace Collect.Controllers
 				serverManager.Disconnect();
 		}
 
-		public void RemoveTrackingSecurity(TrackingSecurity ts)
+		public void RemoveTrackingSecurity(string security)
 		{
-			trackingSecurities.Remove(ts);
-			serverManager.RemoveTrackingSecurity(ts.Security.Code);
+			trackingSecurities.Remove(security);
+			dataManager.RemoveSecurity(security);
 		}
 
 		public void OpenSecurityPickerWindow()
@@ -220,7 +215,7 @@ namespace Collect.Controllers
 
 		public void UpdateParameters()
 		{
-			serverManager?.SetDataStorage(parameters.DataStorage);
+			dataManager.SetDataStorage(parameters.DataStorage);
 		}
 
 		public void OpenParametersWindow()
@@ -233,7 +228,8 @@ namespace Collect.Controllers
 		{
 			logManager.Log("Подключен к серверу");
 			OnServerConnectEvent(true);
-			IsConnected = true;
+			foreach (var ts in trackingSecurities)
+				serverManager.StartListenSecurity(ts.Key);
 		}
 
 		void OnServerDisconnect(string reason)
@@ -242,7 +238,14 @@ namespace Collect.Controllers
 				autoReconnectTimer.Start();
 			logManager.Log("Отключен от сервера", reason);
 			OnServerConnectEvent(false);
-			IsConnected = false;
+		}
+
+		void OnTradeReceive(string security, DateTime time, double price, double volume, Enums.Direction direction)
+		{
+			TrackingSecurity ts = trackingSecurities[security];
+            int vol = (int)volume / ts.Security.LotSize;
+			bool minVolume = vol >= ts.MinimumVolume ? true : false;
+            dataManager.AddData(security, time, (decimal)price, vol, direction, minVolume);
 		}
 
 		void OnReconnectTimer(object sender, ElapsedEventArgs e)
@@ -253,6 +256,14 @@ namespace Collect.Controllers
 			logManager.Log("Автоматическое переподключение к серверу");
 		}
 
-		public event Action<bool> OnServerConnectEvent; 
-	}
+		void OnVolumesUpdate(string security, int volumeSent)
+		{
+			if (trackingSecurities.ContainsKey(security))
+				trackingSecurities[security].VolumeSent += volumeSent;
+		}
+
+		public event Action<bool> OnServerConnectEvent;
+
+		public event Action<TrackingSecurity> OnTrackingSecurityAdd;
+    }
 }

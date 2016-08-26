@@ -13,10 +13,7 @@ namespace Collect.Models
         Security security;
         int minimumVolume;
         [NonSerialized]
-        int volumeRecieved;
-        [NonSerialized]
         int volumeSent;
-        bool tracking;
 
         public Security Security
         {
@@ -37,20 +34,9 @@ namespace Collect.Models
             }
         }
 
-        public int VolumeRecieved
-        {
-            get { return volumeRecieved; }
-            set
-            {
-                if (volumeRecieved == value) return;
-                volumeRecieved = value;
-                OnPropertyChanged("VolumeRecieved");
-            }
-        }
-
         public int VolumeSent
         {
-            get { return volumeRecieved; }
+            get { return volumeSent; }
             set
             {
                 if (volumeSent == value) return;
@@ -59,29 +45,10 @@ namespace Collect.Models
             }
         }
 
-        public bool Tracking
-        {
-            get { return tracking; }
-            set
-            {
-                if (tracking == value) return;
-                tracking = value;
-                OnPropertyChanged("Tracking");
-                OnPropertyChanged("TrackingNot");
-            }
-        }
-
-        public bool TrackingNot
-        {
-            get { return !tracking; }
-        }
-
-        public TrackingSecurity(Security s, int volRec, int volSen, bool track, int minVol)
+        public TrackingSecurity(Security s, int volSen, int minVol)
         {
             security = s;
-            volumeRecieved = volRec;
             volumeSent = volSen;
-            tracking = track;
             minimumVolume = minVol;
         }
 

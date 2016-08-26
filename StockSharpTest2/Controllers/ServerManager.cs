@@ -14,23 +14,18 @@ namespace Collect.Controllers
 {
     class ServerManager
     {
-        DataManager dataManager;
-        StServerClass server;
+		StServerClass server;
 
         // Список всех инструментов
         List<Security> securities;
-        // Список отслеживаемых инструментов
-        Dictionary<string, TrackingSecurity> trackingSecurities;
 
         bool isConnected;
         bool securitiesRecieved;
 
         public ServerManager()
         {
-            dataManager = new DataManager();
-            securities = new List<Security>();
-            trackingSecurities = new Dictionary<string, TrackingSecurity>();
-            InitializeServer();
+			securities = new List<Security>();
+			InitializeServer();
         }
 
         void InitializeServer()
@@ -41,8 +36,6 @@ namespace Collect.Controllers
             server.Disconnected += Handler_Disconnected;
             server.AddSymbol += Handler_NewSecurities;
             server.AddTick += Handler_NewTrades;
-
-            dataManager.OnUpdateVolumes += VolumesUpdate;
         }
 
         #region Handlers
@@ -52,10 +45,6 @@ namespace Collect.Controllers
             isConnected = true;
             if (!securitiesRecieved)
                 server.GetSymbols();
-
-            string[] keys = trackingSecurities.Keys.ToArray();
-            for (int i = 0; i < keys.Length; i++)
-                server.ListenTicks(keys[i]);
 
             OnConnect();
         }
@@ -80,20 +69,7 @@ namespace Collect.Controllers
         void Handler_NewTrades(string securityCode, DateTime time,
             double price, double volume, string tradeId, StOrder_Action direction)
         {
-            if (trackingSecurities[securityCode].Tracking)
-            {
-                bool minVolume = volume / trackingSecurities[securityCode].Security.LotSize >=
-                    trackingSecurities[securityCode].MinimumVolume ? true : false;
-                dataManager.AddData(securityCode, time, (decimal)price,
-                   (int)volume / trackingSecurities[securityCode].Security.LotSize, Enums.ToDirection(direction), minVolume);
-                trackingSecurities[securityCode].VolumeRecieved += (int)volume;
-            }
-        }
-        
-        void VolumesUpdate(string security, int volumeSent)
-        {
-            if (trackingSecurities.ContainsKey(security))
-                trackingSecurities[security].VolumeSent += volumeSent;
+			OnTradeReceive(securityCode, time, price, volume, Enums.ToDirection(direction));
         }
 
         #endregion
@@ -108,9 +84,10 @@ namespace Collect.Controllers
 
         public void Disconnect()
         {
-            string[] keys = trackingSecurities.Keys.ToArray();
-            for (int i = 0; i < keys.Length; i++)
-                server.CancelTicks(keys[i]);
+			// Обязательно ли отменять подписку на трейды, если начнем отсоединение
+            //string[] keys = trackingSecurities.Keys.ToArray();
+            //for (int i = 0; i < keys.Length; i++)
+            //    server.CancelTicks(keys[i]);
             if (isConnected)
                 ThreadPool.QueueUserWorkItem((w) => server.disconnect());
         }
@@ -127,7 +104,7 @@ namespace Collect.Controllers
                 server.AddTick -= Handler_NewTrades;
                 server.AddSymbol -= Handler_NewSecurities;
                 server.Disconnected -= Handler_Disconnected;
-                dataManager.OnUpdateVolumes -= VolumesUpdate;
+				//dataManager.OnUpdateVolumes -= VolumesUpdate;
                 ThreadPool.QueueUserWorkItem((w) => server.disconnect());
             }
         }
@@ -137,41 +114,16 @@ namespace Collect.Controllers
             return securities;
         }
 
-        public async Task<bool> AddTrackingSecurity(TrackingSecurity ts)
-        {
-            if (trackingSecurities.ContainsKey(ts.Security.Code))
-                return false;
-            else
-            {
-                if (await dataManager.AddSecurity(ts.Security.Code))
-                {
-                    if (isConnected)
-                        server.ListenTicks(ts.Security.Code);
-                    trackingSecurities.Add(ts.Security.Code, ts);
-                    return true;
-                }
-                return false;
-            }
-        }
-
-        public void RemoveTrackingSecurity(string securityCode)
-        {
-            trackingSecurities.Remove(securityCode);
-            dataManager.RemoveSecurity(securityCode);
-        }
-
-        public void UpdateVolumeSent(string security, int volumeSent)
-        {
-            trackingSecurities[security].VolumeSent += volumeSent;
-        }
+		public void StartListenSecurity(string security)
+		{
+			if (isConnected)
+				server.ListenTicks(security);
+		}
 
         public event Action OnConnect;
 
         public event Action<string> OnDisconnect;
 
-        public void SetDataStorage(DataStorage ds)
-        {
-            dataManager?.SetDataStorage(ds);
-        }
+		public event Action<string, DateTime, double, double, Enums.Direction> OnTradeReceive;
     }
 }

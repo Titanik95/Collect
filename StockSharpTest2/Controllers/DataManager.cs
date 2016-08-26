@@ -178,25 +178,11 @@ namespace Collect.Controllers
 
         }
 
-        public async Task<bool> AddSecurity(string security)
+        public void AddSecurity(string security)
         {
-            if (trades.ContainsKey(security))
-                return false;
-            else
-            {
-                if (await dbCon.CreateDayTradesTable(security))
-                {
-                    if (await dbCon.CreateDayVolumesTable(security))
-                    {
-                        trades.Add(security, new List<DayTrade>());
-                        string lastMinute = await dbCon.LastMinute(security);
-                        volumes.Add(security, new DayVolume(lastMinute, 0, 0));
-                        return true;
-                    }
-                }
-                ConnectionLost();
-                return false;
-            }
+            trades.Add(security, new List<DayTrade>());
+            string lastMinute = await dbCon.LastMinute(security);
+            volumes.Add(security, new DayVolume(lastMinute, 0, 0));
         }
 
         public void RemoveSecurity(string security)

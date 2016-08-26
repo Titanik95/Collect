@@ -22,10 +22,10 @@ namespace Collect
 		// Главный контроллер
 		MainController main;
 		
-		bool isConnected;
-
         // Иконка в трее
         System.Windows.Forms.NotifyIcon ni;
+
+		ObservableCollection<TrackingSecurity> trackingSecurities;
 
         int controlToolBarOpenWidth = 160, controlToolBarCloseWidth = 48;
 
@@ -35,11 +35,13 @@ namespace Collect
 
 			main = new MainController(this);
             ChangeConnectionStatus(false);
-			securitiesDataGrid.ItemsSource = main.GetTrackingSecurities();
+			trackingSecurities = new ObservableCollection<TrackingSecurity>();
+			securitiesDataGrid.ItemsSource = trackingSecurities;
 
 			main.OnServerConnectEvent += ChangeConnectionStatus;
+			main.OnTrackingSecurityAdd += OnTrackingSecurityAdd;
 
-            InitTrayIcon();
+			InitTrayIcon();
         }
 
         void InitTrayIcon()
@@ -73,7 +75,6 @@ namespace Collect
 			connectionStatusTextBlock.Foreground = new SolidColorBrush(Colors.Green);
 			connectButton.IsEnabled = true;
 			addSecurityButton.IsEnabled = true;
-			isConnected = true;
         }
 
         void OnServerDisconnect()
@@ -81,12 +82,9 @@ namespace Collect
 			connectButtonText.Text = "Подключиться";
 			connectionStatusTextBlock.Text = "Отключен от сервера";
 			connectionStatusTextBlock.Foreground = new SolidColorBrush(Colors.Red);
-			isConnected = false;
         }
 
-        #region Public
-
-        public void ChangeConnectionStatus(bool connected)
+        void ChangeConnectionStatus(bool connected)
         {
 			Dispatcher.Invoke(() =>
 			{
@@ -98,7 +96,10 @@ namespace Collect
 			});
         }
 
-        #endregion
+		void OnTrackingSecurityAdd(TrackingSecurity ts)
+		{
+			trackingSecurities.Add(ts);
+		}
 
         #region UIHandlers
 
@@ -140,7 +141,8 @@ namespace Collect
         private void closeButton(object sender, RoutedEventArgs e)
         {
             TrackingSecurity ts = (TrackingSecurity)securitiesDataGrid.SelectedItem;
-			main.RemoveTrackingSecurity(ts);
+			trackingSecurities.Remove(ts);
+			main.RemoveTrackingSecurity(ts.Security.Code);
         }
 
         private void controlToolBar_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
