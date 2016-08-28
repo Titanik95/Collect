@@ -5,27 +5,35 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Timers;
-using System.Threading;
-using System.Threading.Tasks;
 using static Collect.Enums;
 
 namespace Collect.Controllers
 {
     class DataManager
     {
+		// Объект для работы с БД
         DbConnector dbCon;
+		// Все сделки по каждому инструменту (после отправки в БД очищается)
         Dictionary<string, List<DayTrade>> trades;
+		// Объем текущей минуты по каждому инструменту (после отправки в БД очищается)
         Dictionary<string, DayVolume> volumes;
-        System.Threading.Timer timerForTrades, timerForVolumes;
+		// Таймер для отправки данных в БД
+		Timer updateTimer;
+		// Период отправки данных в БД
         int updateInterval = 5000;
 
+		// Неотправленные в БД сделки
         Dictionary<string, List<DayTrade>> unsavedTrades;
+		// Неотрпавленные в БД объемы
         Dictionary<string, Dictionary<string, DayVolume>> unsavedVolumes;
+		// Признак состояния соединения с БД
         bool connectedToDatabase = true;
-        System.Timers.Timer connectToDatabaseTimer;
+		// Таймер для автоматического переподключения к БД, если соединение потеряно
+        Timer connectToDatabaseTimer;
         // Интервал, через который происходит попытка переподключения к базе данных
         double tryConnectInterval = 10000;
-        System.Timers.Timer dayEndTimer;
+		// Таймер, отсчитывающий время до вызова процедуры переноса данных из дневных таблиц в глобальные
+        Timer dayEndTimer;
 
         LogManager logManager;
 
@@ -35,38 +43,15 @@ namespace Collect.Controllers
             volumes = new Dictionary<string, DayVolume>();
             unsavedTrades = new Dictionary<string, List<DayTrade>>();
             unsavedVolumes = new Dictionary<string, Dictionary<string, DayVolume>>();
-            timerForTrades = new System.Threading.Timer(new TimerCallback(UpdateTradesData), null, Timeout.Infinite, Timeout.Infinite);
-            timerForVolumes = new System.Threading.Timer(new TimerCallback(UpdateVolumesData), null, Timeout.Infinite, Timeout.Infinite);
-            dbCon = new DbConnector(FormDate());
+            dbCon = new DbConnector(DateTime.Now.ToString("yyMMdd"));
 
+			InitUpdateTimer();
 			InitDayEndTimer();
 
             logManager = new LogManager();
         }
 
-		void InitDayEndTimer()
-		{
-			dayEndTimer = new System.Timers.Timer();
-			DateTime endDayTime = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, 19, 00, 00);
-			try
-			{
-				dayEndTimer.Interval = (endDayTime - DateTime.Now).TotalMilliseconds;
-				dayEndTimer.Elapsed += EndDayHandler;
-				dayEndTimer.AutoReset = false;
-				dayEndTimer.Start();
-			}
-			catch
-			{
-
-			}
-		}
-
-        string FormDate()
-        {
-            return DateTime.Now.ToString("yyMMdd");
-        }
-
-        public void AddData(string security, DateTime time, decimal price, int volume, Direction direction, bool minVolume)
+		public void AddData(string security, DateTime time, decimal price, int volume, Direction direction, bool minVolume)
         {
             if (minVolume)
                 trades[security].Add(new DayTrade(time, price, volume, direction));
@@ -106,31 +91,12 @@ namespace Collect.Controllers
 			}
         }
 
-        async void TransferUnsavedTradesToDatabase()
-        {
-            string[] securities = unsavedTrades.Keys.ToArray();
-            for (int i = 0; i < securities.Length; i++)
-            {
-                List<DayTrade> t = unsavedTrades[securities[i]];
-                if (await dbCon.InsertDayTradesData(securities[i], t))
-                    unsavedTrades.Remove(securities[i]);
-                else
-                {
-                    connectedToDatabase = false;
-                    ConnectionLost();
-                    return;
-                }
-            }
-        }
-
-        // Cобытие для контроля отправки данных на сервер БД
-        public event Action<string, int> OnUpdateVolumes;
-
         public async void TransferVolumesToDatabase(bool newMinute = false)
         {
             if (newMinute)
             {
-                timerForVolumes.Change(updateInterval, updateInterval);
+				updateTimer.Stop();
+				updateTimer.Start();
             }
 			foreach (var sec in volumes.Keys.ToArray())
             {
@@ -161,11 +127,6 @@ namespace Collect.Controllers
             }
         }
 
-        void TransferUnsavedVolumesToDatabase()
-        {
-
-        }
-
         public void AddSecurity(string security)
         {
             trades.Add(security, new List<DayTrade>());
@@ -180,49 +141,15 @@ namespace Collect.Controllers
                 volumes.Remove(security);
         }
 
-        void UpdateTradesData(object state)
-        {
-            TransferTradesToDatabase();
-        }
-
-        void UpdateVolumesData(object state)
-        {
-            TransferVolumesToDatabase();
-        }
-
         public void StartTransferingData()
         {
-            timerForTrades.Change(updateInterval, updateInterval);
-            timerForVolumes.Change(updateInterval, updateInterval);
+			updateTimer.Start();
         }
 
         public void StopTransferingData()
         {
-            timerForTrades.Change(0, Timeout.Infinite);
-            timerForVolumes.Change(0, Timeout.Infinite);
-        }
-
-        void ConnectionLost()
-        {
-            connectedToDatabase = false;
-            if (connectToDatabaseTimer == null)
-            {
-                connectToDatabaseTimer = new System.Timers.Timer();
-                connectToDatabaseTimer.Interval = tryConnectInterval;
-                connectToDatabaseTimer.Elapsed += TryConnectToDatabase;
-            }
-            connectToDatabaseTimer.Start();
-        }
-
-        async void TryConnectToDatabase(object sender, ElapsedEventArgs e)
-        {
-            if (await dbCon.TryConnectToDatabase((int)tryConnectInterval - 5000))
-            {
-                connectedToDatabase = true;
-                connectToDatabaseTimer.Stop();
-                TransferUnsavedTradesToDatabase();
-                TransferUnsavedVolumesToDatabase();
-            }
+			updateTimer.Stop();
+			UpdateData(null, null);
         }
 
         public void SetDataStorage(DataStorage ds)
@@ -230,10 +157,88 @@ namespace Collect.Controllers
             dbCon?.SetDataStorage(ds);
         }
 
-        void EndDayHandler(object sender, ElapsedEventArgs e)
-        {
-            dbCon.TransferDayData();
-            logManager.Log("Вызов процедуры трансфера данных из дненых таблиц");
-        }
-    }
+		// Cобытие для контроля отправки данных на сервер БД
+		public event Action<string, int> OnUpdateVolumes;
+
+		void InitUpdateTimer()
+		{
+			updateTimer = new Timer();
+			updateTimer.Interval = updateInterval;
+			updateTimer.Elapsed += UpdateData;
+		}
+
+		void InitDayEndTimer()
+		{
+			dayEndTimer = new System.Timers.Timer();
+			DateTime endDayTime = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, 19, 00, 00);
+			try
+			{
+				dayEndTimer.Interval = (endDayTime - DateTime.Now).TotalMilliseconds;
+				dayEndTimer.Elapsed += EndDayHandler;
+				dayEndTimer.AutoReset = false;
+				dayEndTimer.Start();
+			}
+			catch
+			{
+
+			}
+		}
+
+		void EndDayHandler(object sender, ElapsedEventArgs e)
+		{
+			dbCon.TransferDayData();
+			logManager.Log("Вызов процедуры трансфера данных из дненых таблиц");
+		}
+
+		async void TransferUnsavedTradesToDatabase()
+		{
+			string[] securities = unsavedTrades.Keys.ToArray();
+			for (int i = 0; i < securities.Length; i++)
+			{
+				List<DayTrade> t = unsavedTrades[securities[i]];
+				if (await dbCon.InsertDayTradesData(securities[i], t))
+					unsavedTrades.Remove(securities[i]);
+				else
+				{
+					connectedToDatabase = false;
+					ConnectionLost();
+					return;
+				}
+			}
+		}
+
+		void TransferUnsavedVolumesToDatabase()
+		{
+
+		}
+
+		void UpdateData(object sender, ElapsedEventArgs e)
+		{
+			TransferTradesToDatabase();
+			TransferVolumesToDatabase();
+		}
+
+		void ConnectionLost()
+		{
+			connectedToDatabase = false;
+			if (connectToDatabaseTimer == null)
+			{
+				connectToDatabaseTimer = new System.Timers.Timer();
+				connectToDatabaseTimer.Interval = tryConnectInterval;
+				connectToDatabaseTimer.Elapsed += TryConnectToDatabase;
+			}
+			connectToDatabaseTimer.Start();
+		}
+
+		async void TryConnectToDatabase(object sender, ElapsedEventArgs e)
+		{
+			if (await dbCon.TryConnectToDatabase((int)tryConnectInterval - 5000))
+			{
+				connectedToDatabase = true;
+				connectToDatabaseTimer.Stop();
+				TransferUnsavedTradesToDatabase();
+				TransferUnsavedVolumesToDatabase();
+			}
+		}
+	}
 }
