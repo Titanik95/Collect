@@ -230,6 +230,8 @@ namespace Collect.Controllers
 			OnServerConnectEvent(true);
 			foreach (var ts in trackingSecurities)
 				serverManager.StartListenSecurity(ts.Key);
+			// Начать передачу данных в БД
+			dataManager.StartTransferingData();
 		}
 
 		void OnServerDisconnect(string reason)
@@ -238,6 +240,8 @@ namespace Collect.Controllers
 				autoReconnectTimer.Start();
 			logManager.Log("Отключен от сервера", reason);
 			OnServerConnectEvent(false);
+			// Прекратить передачу данных в БД
+			dataManager.StopTransferingData();
 		}
 
 		void OnTradeReceive(string security, DateTime time, double price, double volume, Enums.Direction direction)

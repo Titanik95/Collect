@@ -16,7 +16,6 @@ namespace Collect.Controllers
         DbConnector dbCon;
         Dictionary<string, List<DayTrade>> trades;
         Dictionary<string, DayVolume> volumes;
-        string date;
         System.Threading.Timer timerForTrades, timerForVolumes;
         int updateInterval = 5000;
 
@@ -38,26 +37,29 @@ namespace Collect.Controllers
             unsavedVolumes = new Dictionary<string, Dictionary<string, DayVolume>>();
             timerForTrades = new System.Threading.Timer(new TimerCallback(UpdateTradesData), null, Timeout.Infinite, Timeout.Infinite);
             timerForVolumes = new System.Threading.Timer(new TimerCallback(UpdateVolumesData), null, Timeout.Infinite, Timeout.Infinite);
-            date = FormDate();
-            dbCon = new DbConnector(date);
-            StartTransferingData();
+            dbCon = new DbConnector(FormDate());
 
-            dayEndTimer = new System.Timers.Timer();
-            DateTime endDayTime = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, 19, 00, 00);
-            try
-            {
-                dayEndTimer.Interval = (endDayTime - DateTime.Now).TotalMilliseconds;
-                dayEndTimer.Elapsed += EndDayHandler;
-                dayEndTimer.AutoReset = false;
-                dayEndTimer.Start();
-            }
-            catch
-            {
-
-            }
+			InitDayEndTimer();
 
             logManager = new LogManager();
         }
+
+		void InitDayEndTimer()
+		{
+			dayEndTimer = new System.Timers.Timer();
+			DateTime endDayTime = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, 19, 00, 00);
+			try
+			{
+				dayEndTimer.Interval = (endDayTime - DateTime.Now).TotalMilliseconds;
+				dayEndTimer.Elapsed += EndDayHandler;
+				dayEndTimer.AutoReset = false;
+				dayEndTimer.Start();
+			}
+			catch
+			{
+
+			}
+		}
 
         string FormDate()
         {
@@ -69,46 +71,39 @@ namespace Collect.Controllers
             if (minVolume)
                 trades[security].Add(new DayTrade(time, price, volume, direction));
 
-            string minute = time.ToString("HHmm");
+            string currentMinute = time.ToString("HHmm");
             DayVolume vol = volumes[security];
-            if (minute != vol.Minute)
+            if (currentMinute != vol.Minute)
             {
-                TransferVolumesToDatabase(true, minute, security);
-                if (direction == Direction.Buy)
-                    volumes[security] = new DayVolume(minute, volume, 0);
-                else
-                    volumes[security] = new DayVolume(minute, 0, volume);
+                TransferVolumesToDatabase(true);
+				vol.Minute = currentMinute;
+				vol.VolumeBuy = vol.VolumeSell = 0;
             }
-            else
-            {
-                if (direction == Direction.Buy)
-                    vol.VolumeBuy += volume;
-                else
-                    vol.VolumeSell += volume;
-            }
-        }
+			if (direction == Direction.Buy)
+				vol.VolumeBuy += volume;
+			else
+				vol.VolumeSell += volume;
+		}
 
         public async void TransferTradesToDatabase()
         {
-            string[] securities = trades.Keys.ToArray();
-            for (int i = 0; i < securities.Length; i++)
-            {
-                string sec = securities[i];
-                List<DayTrade> t = trades[sec];
-                trades[sec] = new List<DayTrade>();
-                if (connectedToDatabase)
-                {
-                    if (await dbCon.InsertDayTradesData(sec, t))
-                        return;
-                }
-                foreach (DayTrade dt in t)
-                {
-                    if (!unsavedTrades.ContainsKey(sec))
-                        unsavedTrades.Add(sec, new List<DayTrade>());
-                    unsavedTrades[sec].Add(dt);
-                }
-                ConnectionLost();
-            }
+            foreach (var sec in trades.Keys.ToArray())
+			{
+				List<DayTrade> t = trades[sec];
+				trades[sec] = new List<DayTrade>();
+				if (connectedToDatabase)
+				{
+					if (await dbCon.InsertDayTradesData(sec, t))
+						return;
+				}
+				foreach (DayTrade dt in t)
+				{
+					if (!unsavedTrades.ContainsKey(sec))
+						unsavedTrades.Add(sec, new List<DayTrade>());
+					unsavedTrades[sec].Add(dt);
+				}
+				ConnectionLost();
+			}
         }
 
         async void TransferUnsavedTradesToDatabase()
@@ -128,45 +123,38 @@ namespace Collect.Controllers
             }
         }
 
-        // Сервер-менеджер подписывается на событие для контроля отправки данных на сервер БД
+        // Cобытие для контроля отправки данных на сервер БД
         public event Action<string, int> OnUpdateVolumes;
 
-        public async void TransferVolumesToDatabase(bool newMinute = false, string minute = "", string sec = "")
+        public async void TransferVolumesToDatabase(bool newMinute = false)
         {
-            string[] keys = volumes.Keys.ToArray();
             if (newMinute)
             {
                 timerForVolumes.Change(updateInterval, updateInterval);
             }
-            for (int i = 0; i < keys.Length; i++)
+			foreach (var sec in volumes.Keys.ToArray())
             {
-                string security = keys[i];
-                if (!volumes.ContainsKey(security))
-                    continue;
-                DayVolume dv = volumes[security];
+                DayVolume dv = volumes[sec];
                 int result = 0;
                 if (connectedToDatabase)
                 {
-                    if (await dbCon.ContainsMinute(security, dv.Minute))
-                        result = await dbCon.UpdateDayVolumesData(security, dv);
-                    else
-                        result = await dbCon.InsertDayVolumesData(security, dv);
+					result = await dbCon.InsertDayVolumesData(sec, dv);
                     if (result == -1)
                     {
                         connectedToDatabase = false;
                         ConnectionLost();
                     }
                     if (result > 0)
-                        OnUpdateVolumes(security, dv.VolumeBuy + dv.VolumeSell);
+                        OnUpdateVolumes(sec, dv.VolumeBuy + dv.VolumeSell);
                 }
                 if (!connectedToDatabase)
                 {
-                    if (!unsavedVolumes.ContainsKey(security))
-                        unsavedVolumes.Add(security, new Dictionary<string, DayVolume>());
-                    if (!unsavedVolumes[security].ContainsKey(dv.Minute))
-                        unsavedVolumes[security].Add(dv.Minute, new DayVolume(dv.Minute, 0, 0));
-                    unsavedVolumes[security][dv.Minute].VolumeBuy += dv.VolumeBuy;
-                    unsavedVolumes[security][dv.Minute].VolumeSell += dv.VolumeSell;
+                    if (!unsavedVolumes.ContainsKey(sec))
+                        unsavedVolumes.Add(sec, new Dictionary<string, DayVolume>());
+                    if (!unsavedVolumes[sec].ContainsKey(dv.Minute))
+                        unsavedVolumes[sec].Add(dv.Minute, new DayVolume(dv.Minute, 0, 0));
+                    unsavedVolumes[sec][dv.Minute].VolumeBuy += dv.VolumeBuy;
+                    unsavedVolumes[sec][dv.Minute].VolumeSell += dv.VolumeSell;
                 }
                 dv.VolumeBuy = 0;
                 dv.VolumeSell = 0;
@@ -181,8 +169,7 @@ namespace Collect.Controllers
         public void AddSecurity(string security)
         {
             trades.Add(security, new List<DayTrade>());
-            string lastMinute = await dbCon.LastMinute(security);
-            volumes.Add(security, new DayVolume(lastMinute, 0, 0));
+            volumes.Add(security, new DayVolume("1000", 0, 0));
         }
 
         public void RemoveSecurity(string security)
@@ -211,8 +198,8 @@ namespace Collect.Controllers
 
         public void StopTransferingData()
         {
-            timerForTrades.Change(Timeout.Infinite, Timeout.Infinite);
-            timerForVolumes.Change(Timeout.Infinite, Timeout.Infinite);
+            timerForTrades.Change(0, Timeout.Infinite);
+            timerForVolumes.Change(0, Timeout.Infinite);
         }
 
         void ConnectionLost()
