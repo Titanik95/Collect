@@ -23,74 +23,6 @@ namespace Collect
             this.date = date;
         }
 
-        // Создание дневной таблицы сделок
-        public async Task<bool> CreateDayTradesTable(string tableName)
-        {
-            CancellationTokenSource cts = new CancellationTokenSource(cancellationTokenTime);
-            using (SqlConnection con = new SqlConnection(Common.GetConnectionString(dataStorage)))
-            {
-                try
-                {
-                    await con.OpenAsync(cts.Token);
-                }
-                catch
-                {
-                    return false;
-                }
-
-                SqlCommand command = con.CreateCommand();
-                command.CommandText = Properties.Resources.ProcName_CreateDayTradesTable;
-                command.CommandType = CommandType.StoredProcedure;
-                command.Parameters.AddWithValue("@Date", date);
-                command.Parameters.AddWithValue("@TableName", tableName);
-                try
-                {
-                    await command.ExecuteNonQueryAsync();
-                }
-                catch
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        /// <summary>
-        /// Создание дневной таблицы объемов
-        /// </summary>
-        /// <param name="tableName"> Код ценной бумаги</param>
-        /// <returns></returns>
-        public async Task<bool> CreateDayVolumesTable(string tableName)
-        {
-            CancellationTokenSource cts = new CancellationTokenSource(cancellationTokenTime);
-            using (SqlConnection con = new SqlConnection(Common.GetConnectionString(dataStorage)))
-            {
-                try
-                {
-                    await con.OpenAsync(cts.Token);
-                }
-                catch
-                {
-                    return false;
-                }
-
-                SqlCommand command = con.CreateCommand();
-                command.CommandText = Properties.Resources.ProcName_CreateDayVolumesTable;
-                command.CommandType = CommandType.StoredProcedure;
-                command.Parameters.AddWithValue("@Date", date);
-                command.Parameters.AddWithValue("@TableName", tableName);
-                try
-                {
-                    await command.ExecuteNonQueryAsync();
-                }
-                catch
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
         /// <summary>
         /// Вставка данных в дневную таблицу сделок
         /// </summary>
@@ -105,7 +37,6 @@ namespace Collect
                 try
                 {
                     await con.OpenAsync(cts.Token);
-                    await CreateDayTradesTable(tableName);
                 }
                 catch
                 {
@@ -159,51 +90,8 @@ namespace Collect
                     return -1;
                 }
 
-                await CreateDayVolumesTable(tableName);
-
                 SqlCommand command = con.CreateCommand();
                 command.CommandText = Properties.Resources.ProcName_InsertDayVolumesData;
-                command.CommandType = CommandType.StoredProcedure;
-                command.Parameters.AddWithValue("@Date", date);
-                command.Parameters.AddWithValue("@TableName", tableName);
-                command.Parameters.AddWithValue("@Minute", volume.Minute);
-                command.Parameters.AddWithValue("@VolumeBuy", volume.VolumeBuy);
-                command.Parameters.AddWithValue("@VolumeSell", volume.VolumeSell);
-                try
-                {
-                    rowsAffected = await command.ExecuteNonQueryAsync();
-                }
-                catch
-                {
-                    return -1;
-                }
-            }
-            return rowsAffected;
-        }
-
-        /// <summary>
-        /// Обновление данных дневных объемов
-        /// </summary>
-        /// <param name="tableName"> Код ценной бумаги </param>
-        /// <param name="volume"> Объект, описывающий объем за минуту </param>
-        /// <returns></returns>
-        public async Task<int> UpdateDayVolumesData(string tableName, DayVolume volume)
-        {
-            int rowsAffected = 0;
-            CancellationTokenSource cts = new CancellationTokenSource(cancellationTokenTime);
-            using (SqlConnection con = new SqlConnection(Common.GetConnectionString(dataStorage)))
-            {
-                try
-                {
-                    await con.OpenAsync(cts.Token);
-                }
-                catch
-                {
-                    return -1;
-                }
-
-                SqlCommand command = con.CreateCommand();
-                command.CommandText = Properties.Resources.ProcName_UpdateDayVolume;
                 command.CommandType = CommandType.StoredProcedure;
                 command.Parameters.AddWithValue("@Date", date);
                 command.Parameters.AddWithValue("@TableName", tableName);
@@ -235,89 +123,6 @@ namespace Collect
                 command.CommandText = Properties.Resources.ProcName_TransferDayTables;
                 command.CommandType = CommandType.StoredProcedure;
                 await command.ExecuteNonQueryAsync();
-            }
-        }
-
-        public async Task<string> LastMinute(string tableName)
-        {
-            using (SqlConnection con = new SqlConnection(Common.GetConnectionString(dataStorage)))
-            {
-                try
-                {
-                    await con.OpenAsync();
-                }
-                catch
-                {
-                    return "";
-                }
-
-                SqlCommand command = con.CreateCommand();
-                command.CommandText = Properties.Resources.ProcName_LastMinute;
-                command.CommandType = CommandType.StoredProcedure;
-                command.Parameters.AddWithValue("@Date", date);
-                command.Parameters.AddWithValue("@TableName", tableName);
-                try
-                {
-                    var r = command.ExecuteReaderAsync();
-                    var result = r.Result;
-                    if (!result.HasRows)
-                    {
-                        return "";
-                    }
-                    else
-                    {
-                        await result.ReadAsync();
-                        return result[0] as string;
-                    }
-                }
-                catch
-                {
-                    return "";
-                }
-            }
-        }
-
-        public async Task<bool> ContainsMinute(string tableName, string minute)
-        {
-            CancellationTokenSource cts = new CancellationTokenSource(cancellationTokenTime);
-            using (SqlConnection con = new SqlConnection(Common.GetConnectionString(dataStorage)))
-            {
-                try
-                {
-                    con.Open();
-                }
-                catch
-                {
-                    return false;
-                }
-
-                SqlCommand command = con.CreateCommand();
-                command.CommandText = Properties.Resources.ProcName_ContainsMinute;
-                command.CommandType = CommandType.StoredProcedure;
-                command.Parameters.AddWithValue("@Date", date);
-                command.Parameters.AddWithValue("@TableName", tableName);
-                command.Parameters.AddWithValue("@Minute", minute);
-                try
-                {
-                    var r = command.ExecuteReaderAsync();
-                    var result = r.Result;
-                    if (!result.HasRows)
-                    {
-                        return false;
-                    }
-                    else
-                    {
-                        await result.ReadAsync();
-                        if (result.GetInt32(0) == 1)
-                            return true;
-                        else
-                            return false;
-                    }
-                }
-                catch
-                {
-                    return false;
-                }
             }
         }
 
