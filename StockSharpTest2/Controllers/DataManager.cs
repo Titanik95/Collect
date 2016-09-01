@@ -51,7 +51,7 @@ namespace Collect.Controllers
             logManager = new LogManager();
         }
 
-		public void AddData(string security, DateTime time, decimal price, int volume, Direction direction, bool minVolume)
+		public void AddData(string security, DateTime time, decimal price, double volume, Direction direction, bool minVolume)
         {
             if (minVolume)
                 trades[security].Add(new DayTrade(time, price, volume, direction));
@@ -87,7 +87,7 @@ namespace Collect.Controllers
 						unsavedTrades.Add(sec, new List<DayTrade>());
 					unsavedTrades[sec].Add(dt);
 				}
-				ConnectionLost();
+				//ConnectionLost();
 			}
         }
 
@@ -158,7 +158,7 @@ namespace Collect.Controllers
         }
 
 		// Cобытие для контроля отправки данных на сервер БД
-		public event Action<string, int> OnUpdateVolumes;
+		public event Action<string, double> OnUpdateVolumes;
 
 		void InitUpdateTimer()
 		{

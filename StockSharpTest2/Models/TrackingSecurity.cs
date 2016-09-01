@@ -11,9 +11,11 @@ namespace Collect.Models
     public class TrackingSecurity : INotifyPropertyChanged
     {
         Security security;
-        int minimumVolume;
-        [NonSerialized]
-        int volumeSent;
+        double minimumVolume;
+		[NonSerialized]
+		double volumeReceived;
+		[NonSerialized]
+        double volumeSent;
 
         public Security Security
         {
@@ -23,7 +25,7 @@ namespace Collect.Models
             }
         }
 
-        public int MinimumVolume
+        public double MinimumVolume
         {
             get { return minimumVolume; }
             set
@@ -34,7 +36,18 @@ namespace Collect.Models
             }
         }
 
-        public int VolumeSent
+		public double VolumeReceived
+		{
+			get { return volumeReceived; }
+			set
+			{
+				if (volumeReceived == value) return;
+				volumeReceived = value;
+				OnPropertyChanged("VolumeReceived");
+			}
+		}
+
+		public double VolumeSent
         {
             get { return volumeSent; }
             set
@@ -45,9 +58,10 @@ namespace Collect.Models
             }
         }
 
-        public TrackingSecurity(Security s, int volSen, int minVol)
+        public TrackingSecurity(Security s, double volRec, double volSen, double minVol)
         {
             security = s;
+			volumeReceived = volRec;
             volumeSent = volSen;
             minimumVolume = minVol;
         }

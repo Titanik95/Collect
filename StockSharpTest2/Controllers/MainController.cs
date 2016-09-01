@@ -44,7 +44,7 @@ namespace Collect.Controllers
 
 			InitParameters();
 			InitServerManager();
-			InitTrackingSecurities();
+			//InitTrackingSecurities();
 			InitTimers();
 
 			dataManager.OnUpdateVolumes += OnVolumesUpdate;
@@ -54,7 +54,7 @@ namespace Collect.Controllers
 		/// <summary>
 		/// Инициализация отслеживаемых инструментов из файла
 		/// </summary>
-		void InitTrackingSecurities()
+		public void InitTrackingSecurities()
 		{
 			using (FileStream fs = new FileStream(Properties.Resources.SecuritiesFileName, FileMode.OpenOrCreate))
 			{
@@ -71,7 +71,10 @@ namespace Collect.Controllers
 				}
 			}
 			foreach (var ts in trackingSecurities)
+			{
 				OnTrackingSecurityAdd(ts.Value);
+				dataManager.AddSecurity(ts.Key);
+			}
 		}
 
 		/// <summary>
@@ -106,6 +109,7 @@ namespace Collect.Controllers
 			serverManager = new ServerManager();
 			serverManager.OnConnect += OnServerConnect;
 			serverManager.OnDisconnect += OnServerDisconnect;
+			serverManager.OnTradeReceive += OnTradeReceive;
 		}
 
 		/// <summary>
@@ -129,7 +133,7 @@ namespace Collect.Controllers
 			if (trackingSecurities.ContainsKey(security.Code))
 				return false;
 
-			TrackingSecurity ts = new TrackingSecurity(security, 0, 1000);
+			TrackingSecurity ts = new TrackingSecurity(security, 0, 0, 1000);
 			trackingSecurities.Add(security.Code, ts);
 			// Если подключены к серверу, то начать прослушивать данный инструмент
 			serverManager.StartListenSecurity(security.Code);
@@ -247,7 +251,8 @@ namespace Collect.Controllers
 		void OnTradeReceive(string security, DateTime time, double price, double volume, Enums.Direction direction)
 		{
 			TrackingSecurity ts = trackingSecurities[security];
-            int vol = (int)volume / ts.Security.LotSize;
+            double vol = volume / ts.Security.LotSize;
+			ts.VolumeReceived = vol;
 			bool minVolume = vol >= ts.MinimumVolume ? true : false;
             dataManager.AddData(security, time, (decimal)price, vol, direction, minVolume);
 		}
@@ -260,7 +265,7 @@ namespace Collect.Controllers
 			logManager.Log("Автоматическое переподключение к серверу");
 		}
 
-		void OnVolumesUpdate(string security, int volumeSent)
+		void OnVolumesUpdate(string security, double volumeSent)
 		{
 			if (trackingSecurities.ContainsKey(security))
 				trackingSecurities[security].VolumeSent += volumeSent;

@@ -141,14 +141,14 @@ namespace Collect.Views
                 PrepareSearch();
         }
 
-        private async void addSecurityButton_Click(object sender, RoutedEventArgs e)
+        private void addSecurityButton_Click(object sender, RoutedEventArgs e)
         {
             if (securitiesDataGrid.SelectedItems.Count == 0)
                 return;
             int securitiesAdded = 0;
             foreach (Security s in securitiesDataGrid.SelectedItems)
             {
-                if (await mainWindow.AddSecurity(s))
+                if (mainWindow.AddSecurity(s))
                     securitiesAdded++;
             }
             addSecurityStatusPopup.IsOpen = false;

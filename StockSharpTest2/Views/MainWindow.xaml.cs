@@ -14,6 +14,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.IO;
 using System.Windows.Input;
 using System.Timers;
+using System.Threading;
 
 namespace Collect
 {
@@ -34,12 +35,13 @@ namespace Collect
             InitializeComponent();
 
 			main = new MainController(this);
-            ChangeConnectionStatus(false);
+			ChangeConnectionStatus(false);
 			trackingSecurities = new ObservableCollection<TrackingSecurity>();
 			securitiesDataGrid.ItemsSource = trackingSecurities;
 
 			main.OnServerConnectEvent += ChangeConnectionStatus;
 			main.OnTrackingSecurityAdd += OnTrackingSecurityAdd;
+			ThreadPool.QueueUserWorkItem( (w) =>  main.InitTrackingSecurities());
 
 			InitTrayIcon();
         }
@@ -59,7 +61,7 @@ namespace Collect
             menuItem1.Click += (s, e) => Application.Current.Shutdown();
             ni.ContextMenu.MenuItems.Add(menuItem1);
         }
-
+		
         protected override void OnStateChanged(EventArgs e)
         {
             if (WindowState == System.Windows.WindowState.Minimized)
@@ -73,7 +75,6 @@ namespace Collect
 			connectButtonText.Text = "Отключиться";
 			connectionStatusTextBlock.Text = "Подключен к серверу";
 			connectionStatusTextBlock.Foreground = new SolidColorBrush(Colors.Green);
-			connectButton.IsEnabled = true;
 			addSecurityButton.IsEnabled = true;
         }
 
@@ -93,12 +94,13 @@ namespace Collect
 				else
 					OnServerDisconnect();
 				main.CloseConnectWindow();
+				connectButton.IsEnabled = true;
 			});
-        }
+		}
 
 		void OnTrackingSecurityAdd(TrackingSecurity ts)
 		{
-			trackingSecurities.Add(ts);
+			Dispatcher.Invoke(() => trackingSecurities.Add(ts));
 		}
 
         #region UIHandlers

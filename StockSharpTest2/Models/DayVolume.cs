@@ -8,7 +8,7 @@ namespace Collect.Models
 {
     class DayVolume
     {
-        public DayVolume(string minute, int volumeBuy, int volumeSell)
+        public DayVolume(string minute, double volumeBuy, double volumeSell)
         {
             Minute = minute;
             VolumeBuy = volumeBuy;
@@ -16,7 +16,7 @@ namespace Collect.Models
         }
 
         public string Minute { get; set; }
-        public int VolumeBuy { get; set; }
-        public int VolumeSell { get; set; }
+        public double VolumeBuy { get; set; }
+        public double VolumeSell { get; set; }
     }
 }

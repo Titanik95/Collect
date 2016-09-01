@@ -9,7 +9,7 @@ namespace Collect.Models
 {
     class DayTrade
     {
-        public DayTrade(DateTime time, decimal price, int volume, Direction direction)
+        public DayTrade(DateTime time, decimal price, double volume, Direction direction)
         {
             Time = time;
             Price = price;
@@ -19,7 +19,7 @@ namespace Collect.Models
 
         public DateTime Time { get; set; }
         public decimal Price { get; set; }
-        public int Volume { get; set; }
+        public double Volume { get; set; }
         public Direction Direction { get; set; }
     }
 }
