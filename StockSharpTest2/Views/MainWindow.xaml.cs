@@ -15,6 +15,8 @@ using System.IO;
 using System.Windows.Input;
 using System.Timers;
 using System.Threading;
+using System.Windows.Data;
+using System.Globalization;
 
 namespace Collect
 {
@@ -33,15 +35,14 @@ namespace Collect
         public MainWindow()
         {
             InitializeComponent();
-
+			trackingSecurities = new ObservableCollection<TrackingSecurity>();
 			main = new MainController(this);
 			ChangeConnectionStatus(false);
-			trackingSecurities = new ObservableCollection<TrackingSecurity>();
 			securitiesDataGrid.ItemsSource = trackingSecurities;
 
 			main.OnServerConnectEvent += ChangeConnectionStatus;
 			main.OnTrackingSecurityAdd += OnTrackingSecurityAdd;
-			ThreadPool.QueueUserWorkItem( (w) =>  main.InitTrackingSecurities());
+			ThreadPool.QueueUserWorkItem((w) => main.GetTrackingSecurities());
 
 			InitTrayIcon();
         }
@@ -93,8 +94,8 @@ namespace Collect
 					OnServerConnect();
 				else
 					OnServerDisconnect();
-				main.CloseConnectWindow();
 				connectButton.IsEnabled = true;
+				main.CloseConnectWindow();
 			});
 		}
 
@@ -189,5 +190,50 @@ namespace Collect
             controlToolBarTray.Width = controlToolBarOpenWidth;
         }
         #endregion
+    }
+
+    [ValueConversion(typeof(string), typeof(string))]
+    public class VolumeConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            double num = (double)value;
+            string sym = "";
+            if (Math.Abs(num) >= 1000)
+            {
+                num /= 1000;
+                sym = "K";
+            }
+            if (Math.Abs(num) >= 1000)
+            {
+                num /= 1000;
+                sym = "M";
+            }
+            if (Math.Abs(num) >= 1000)
+            {
+                num /= 1000;
+                sym = "B";
+            }
+
+            if (num < 10)
+                num = Math.Round(num, 2);
+            else if (num < 100)
+                num = Math.Round(num, 1);
+            else
+                num = Math.Round(num, 0);
+
+            return string.Format("{0:##0.##}{1}", num, sym);
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            string strValue = value as string;
+            DateTime resultDateTime;
+            if (DateTime.TryParse(strValue, out resultDateTime))
+            {
+                return resultDateTime;
+            }
+            return DependencyProperty.UnsetValue;
+        }
     }
 }

@@ -104,7 +104,6 @@ namespace Collect.Controllers
                 server.AddTick -= Handler_NewTrades;
                 server.AddSymbol -= Handler_NewSecurities;
                 server.Disconnected -= Handler_Disconnected;
-				//dataManager.OnUpdateVolumes -= VolumesUpdate;
                 ThreadPool.QueueUserWorkItem((w) => server.disconnect());
             }
         }

@@ -37,6 +37,8 @@
             <Separator Height="2" Margin="-12,4"/>
             <RadioButton x:Name="serverMainRadioButton" IsChecked="{Binding ServerType, ConverterParameter=Main, Converter={StaticResource EnumConverter}, Mode=TwoWay}"  Content="Главный сервер" GroupName="ServerType" FontSize="16" VerticalContentAlignment="Center"/>
             <RadioButton x:Name="serverMain2RadioButton" IsChecked="{Binding ServerType, ConverterParameter=Main2, Converter={StaticResource EnumConverter}, Mode=TwoWay}"  Content="Главный сервер 2" GroupName="ServerType" FontSize="16" VerticalContentAlignment="Center"/>
+            <RadioButton x:Name="serverReserveRadioButton" IsChecked="{Binding ServerType, ConverterParameter=Reserve, Converter={StaticResource EnumConverter}, Mode=TwoWay}"  Content="Резервный сервер" GroupName="ServerType" FontSize="16" VerticalContentAlignment="Center"/>
+            <RadioButton x:Name="serverReserve2RadioButton" IsChecked="{Binding ServerType, ConverterParameter=Reserve2, Converter={StaticResource EnumConverter}, Mode=TwoWay}"  Content="Резервный сервер 2" GroupName="ServerType" FontSize="16" VerticalContentAlignment="Center"/>
             <RadioButton x:Name="serverDemoRadioButton" IsChecked="{Binding ServerType, ConverterParameter=Demo, Converter={StaticResource EnumConverter}, Mode=TwoWay}" Content="Демо сервер" GroupName="ServerType" FontSize="16" VerticalContentAlignment="Center"/>
         </StackPanel>
 

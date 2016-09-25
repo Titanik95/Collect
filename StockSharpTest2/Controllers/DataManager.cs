@@ -70,7 +70,7 @@ namespace Collect.Controllers
 				vol.VolumeSell += volume;
 		}
 
-        public async void TransferTradesToDatabase()
+        public void TransferTradesToDatabase()
         {
             foreach (var sec in trades.Keys.ToArray())
 			{
@@ -78,7 +78,7 @@ namespace Collect.Controllers
 				trades[sec] = new List<DayTrade>();
 				if (connectedToDatabase)
 				{
-					if (await dbCon.InsertDayTradesData(sec, t))
+					if (dbCon.InsertDayTradesData(sec, t))
 						return;
 				}
 				foreach (DayTrade dt in t)
@@ -91,7 +91,7 @@ namespace Collect.Controllers
 			}
         }
 
-        public async void TransferVolumesToDatabase(bool newMinute = false)
+        public void TransferVolumesToDatabase(bool newMinute = false)
         {
             if (newMinute)
             {
@@ -104,13 +104,10 @@ namespace Collect.Controllers
                 int result = 0;
                 if (connectedToDatabase)
                 {
-					result = await dbCon.InsertDayVolumesData(sec, dv);
+					result = dbCon.InsertDayVolumesData(sec, dv);
                     if (result == -1)
-                    {
-                        connectedToDatabase = false;
                         ConnectionLost();
-                    }
-                    if (result > 0)
+                    else if (result > 0)
                         OnUpdateVolumes(sec, dv.VolumeBuy + dv.VolumeSell);
                 }
                 if (!connectedToDatabase)
@@ -190,13 +187,13 @@ namespace Collect.Controllers
 			logManager.Log("Вызов процедуры трансфера данных из дненых таблиц");
 		}
 
-		async void TransferUnsavedTradesToDatabase()
+		void TransferUnsavedTradesToDatabase()
 		{
 			string[] securities = unsavedTrades.Keys.ToArray();
 			for (int i = 0; i < securities.Length; i++)
 			{
 				List<DayTrade> t = unsavedTrades[securities[i]];
-				if (await dbCon.InsertDayTradesData(securities[i], t))
+				if (dbCon.InsertDayTradesData(securities[i], t))
 					unsavedTrades.Remove(securities[i]);
 				else
 				{
@@ -230,9 +227,9 @@ namespace Collect.Controllers
 			connectToDatabaseTimer.Start();
 		}
 
-		async void TryConnectToDatabase(object sender, ElapsedEventArgs e)
+		void TryConnectToDatabase(object sender, ElapsedEventArgs e)
 		{
-			if (await dbCon.TryConnectToDatabase((int)tryConnectInterval - 5000))
+			if (dbCon.TryConnectToDatabase((int)tryConnectInterval - 5000))
 			{
 				connectedToDatabase = true;
 				connectToDatabaseTimer.Stop();

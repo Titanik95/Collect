@@ -29,14 +29,14 @@ namespace Collect
         /// <param name="tableName"> Код ценной бумаги </param>
         /// <param name="trades"> Список сделок </param>
         /// <returns></returns>
-        public async Task<bool> InsertDayTradesData(string tableName, List<DayTrade> trades)
+        public bool InsertDayTradesData(string tableName, List<DayTrade> trades)
         {
             CancellationTokenSource cts = new CancellationTokenSource(cancellationTokenTime);
             using (SqlConnection con = new SqlConnection(Common.GetConnectionString(dataStorage)))
             {
                 try
                 {
-                    await con.OpenAsync(cts.Token);
+					con.Open();
                 }
                 catch
                 {
@@ -58,7 +58,7 @@ namespace Collect
                     command.Parameters.AddWithValue("@Direction", trade.Direction);
                     try
                     {
-                        await command.ExecuteNonQueryAsync();
+                        command.ExecuteNonQuery();
                     }
                     catch
                     {
@@ -75,7 +75,7 @@ namespace Collect
         /// <param name="tableName"> Код ценной бумаги </param>
         /// <param name="volume"> Объект, описывающий объем за минуту </param>
         /// <returns></returns>
-        public async Task<int> InsertDayVolumesData(string tableName, DayVolume volume)
+        public int InsertDayVolumesData(string tableName, DayVolume volume)
         {
             CancellationTokenSource cts = new CancellationTokenSource(cancellationTokenTime);
             int rowsAffected;
@@ -100,7 +100,7 @@ namespace Collect
                 command.Parameters.AddWithValue("@VolumeSell", volume.VolumeSell);
                 try
                 {
-                    rowsAffected = await command.ExecuteNonQueryAsync();
+                    rowsAffected = command.ExecuteNonQuery();
                 }
                 catch
                 {
@@ -126,14 +126,15 @@ namespace Collect
             }
         }
 
-        public async Task<bool> TryConnectToDatabase(int delay)
+        public bool TryConnectToDatabase(int delay)
         {
+			MessageBox.Show("Попытка подключения к БД");
             CancellationTokenSource cts = new CancellationTokenSource(delay);
             using (SqlConnection con = new SqlConnection(Common.GetConnectionString(dataStorage)))
             {
                 try
                 {
-                    await con.OpenAsync(cts.Token);
+                    con.Open();
                 }
                 catch
                 {

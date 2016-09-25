@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace Collect.Controllers
 {
@@ -31,9 +32,13 @@ namespace Collect.Controllers
 		LogManager logManager;
 		// Параметры
 		Parameters parameters;
+		// Открыто ли окно подключения к серверу
+		bool isConnectWindowOpen;
 
 		// Подключен ли к серверу
 		public bool IsConnected { get { return serverManager.IsConnected; } }
+
+
 
 		public MainController(MainWindow m)
 		{
@@ -41,10 +46,11 @@ namespace Collect.Controllers
 			serverManager = new ServerManager();
 			dataManager = new DataManager();
 			logManager = new LogManager();
+			cw = new ConnectWindow();
 
 			InitParameters();
 			InitServerManager();
-			//InitTrackingSecurities();
+			InitTrackingSecurities();
 			InitTimers();
 
 			dataManager.OnUpdateVolumes += OnVolumesUpdate;
@@ -54,7 +60,7 @@ namespace Collect.Controllers
 		/// <summary>
 		/// Инициализация отслеживаемых инструментов из файла
 		/// </summary>
-		public void InitTrackingSecurities()
+		void InitTrackingSecurities()
 		{
 			using (FileStream fs = new FileStream(Properties.Resources.SecuritiesFileName, FileMode.OpenOrCreate))
 			{
@@ -71,10 +77,7 @@ namespace Collect.Controllers
 				}
 			}
 			foreach (var ts in trackingSecurities)
-			{
-				OnTrackingSecurityAdd(ts.Value);
 				dataManager.AddSecurity(ts.Key);
-			}
 		}
 
 		/// <summary>
@@ -123,9 +126,10 @@ namespace Collect.Controllers
 			autoReconnectTimer.Elapsed += OnReconnectTimer;
 		}
 
-		public List<Security> GetSecuritiesList()
+		public void GetTrackingSecurities()
 		{
-			return serverManager.GetSecuritiesList();
+			foreach (var ts in trackingSecurities.Values)
+				OnTrackingSecurityAdd(ts);
 		}
 
 		public bool AddSecurity(Security security)
@@ -146,16 +150,16 @@ namespace Collect.Controllers
 
 		public void ShowConnectWindow()
 		{
-			if (cw == null)
-				cw = new ConnectWindow();
-			cw.Close();
-			cw.Owner = mainWindow;
-			cw.ShowDialog();
-		}
-
-		public void CloseConnectWindow()
-		{
-			cw?.Close();
+			if (!isConnectWindowOpen)
+			{
+				cw.Dispatcher.Invoke(() =>
+				{
+					cw = new ConnectWindow();
+					cw.Owner = mainWindow;
+					cw.Show();
+				});
+				isConnectWindowOpen = true;
+			}
 		}
 
 		public void CleanUpServerManager()
@@ -169,13 +173,17 @@ namespace Collect.Controllers
 			{
 				autoReconnectTimer.Stop();
 				serverManager?.Connect(parameters.Login, parameters.Password, parameters.ServerType);
-				cw?.Close();
-				cw = new ConnectWindow();
-				cw.Owner = mainWindow;
-				cw.Show();
+				ShowConnectWindow();
 			}
 			else
 				serverManager.Disconnect();
+		}
+
+		// Закрыть окно подключения к серверу
+		public void CloseConnectWindow()
+		{
+			cw?.Close();
+			isConnectWindowOpen = false;
 		}
 
 		public void RemoveTrackingSecurity(string security)
@@ -230,10 +238,11 @@ namespace Collect.Controllers
 
 		void OnServerConnect()
 		{
-			logManager.Log("Подключен к серверу");
+			logManager.Log("Подключен к серверу " + parameters.ServerType.ToString());
 			OnServerConnectEvent(true);
 			foreach (var ts in trackingSecurities)
 				serverManager.StartListenSecurity(ts.Key);
+			autoReconnectTimer.Stop();
 			// Начать передачу данных в БД
 			dataManager.StartTransferingData();
 		}
@@ -241,8 +250,11 @@ namespace Collect.Controllers
 		void OnServerDisconnect(string reason)
 		{
 			if (reason != "Disconnected by user" && parameters.AutoReconnect)
+			{
+				parameters.ServerType = Enums.ToServerType(((int)parameters.ServerType + 1) % 4);
 				autoReconnectTimer.Start();
-			logManager.Log("Отключен от сервера", reason);
+			}
+			logManager.Log("Отключен от сервера " + parameters.ServerType.ToString(), reason);
 			OnServerConnectEvent(false);
 			// Прекратить передачу данных в БД
 			dataManager.StopTransferingData();
@@ -252,17 +264,17 @@ namespace Collect.Controllers
 		{
 			TrackingSecurity ts = trackingSecurities[security];
             double vol = volume / ts.Security.LotSize;
-			ts.VolumeReceived = vol;
+			ts.VolumeReceived += vol;
 			bool minVolume = vol >= ts.MinimumVolume ? true : false;
             dataManager.AddData(security, time, (decimal)price, vol, direction, minVolume);
 		}
 
 		void OnReconnectTimer(object sender, ElapsedEventArgs e)
 		{
+			logManager.Log("Автоматическое переподключение к серверу " + parameters.ServerType.ToString());
 			autoReconnectTimer.Interval = parameters.AutoReconnectTime * 1000;
 			if (parameters.AutoReconnect)
 				ConnectToServer();
-			logManager.Log("Автоматическое переподключение к серверу");
 		}
 
 		void OnVolumesUpdate(string security, double volumeSent)

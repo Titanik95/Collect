@@ -17,6 +17,8 @@ namespace Collect
     {
         Main,
         Main2,
+		Reserve,
+		Reserve2,
         Demo
     }
 
@@ -43,5 +45,22 @@ namespace Collect
             }
             return dir;
         }
-    }
+
+		public static ServerType ToServerType(int serverNumber)
+		{
+			switch(serverNumber)
+			{
+				case 0:
+					return ServerType.Main;
+				case 1:
+					return ServerType.Main2;
+				case 2:
+					return ServerType.Reserve;
+				case 3:
+					return ServerType.Reserve2;
+				default:
+					return ServerType.Main;
+			}
+		}
+	}
 }

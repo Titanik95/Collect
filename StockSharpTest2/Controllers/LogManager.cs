@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace Collect.Controllers
 {
@@ -18,20 +19,20 @@ namespace Collect.Controllers
             filePath = directory + DateTime.Now.ToShortDateString() + ".txt";
         }
 
-        async public void Log(string message)
+        public void Log(string message)
         {
-            using (StreamWriter sw = new StreamWriter(filePath, true))
-            {
-                await sw.WriteLineAsync(DateTime.Now.ToString("HH:mm:ss") + " - " + message);
-            }
+			using (StreamWriter sw = new StreamWriter(filePath, true))
+			{
+				sw.WriteLine(DateTime.Now.ToString("HH:mm:ss") + " - " + message);
+			}
         }
 
         async public void Log(string header, string message)
         {
-            using (StreamWriter sw = new StreamWriter(filePath, true))
-            {
-                await sw.WriteLineAsync(DateTime.Now.ToString("HH:mm:ss") + " - " + header + " - " + message);
-            }
+			using (StreamWriter sw = new StreamWriter(filePath, true))
+			{
+				await sw.WriteLineAsync(DateTime.Now.ToString("HH:mm:ss") + " - " + header + " - " + message);
+			}
         }
     }
 }

@@ -11,8 +11,10 @@ namespace Collect.Others
         static readonly string demoAddress = "mxdemo.ittrade.ru";
         static readonly string mainAddress = "mx.ittrade.ru";
         static readonly string mainAddress2 = "mx2.ittrade.ru";
+		static readonly string reserveAddress = "mxr.ittrade.ru";
+		static readonly string reserveAddress2 = "mxr2.ittrade.ru";
 
-        static readonly ushort port = 8443;
+		static readonly ushort port = 8443;
 
         static public string GetAddress(ServerType st)
         {
@@ -22,7 +24,11 @@ namespace Collect.Others
                     return mainAddress;
                 case ServerType.Main2:
                     return mainAddress2;
-                case ServerType.Demo:
+				case ServerType.Reserve:
+					return reserveAddress;
+				case ServerType.Reserve2:
+					return reserveAddress2;
+				case ServerType.Demo:
                     return demoAddress;
                 default:
                     return mainAddress;

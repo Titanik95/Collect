@@ -7,6 +7,10 @@
         mc:Ignorable="d"
         Title="Отслеживание данных 0.2.2" Height="370" Width="604" Closing="Window_Closing" MinWidth="604" MinHeight="360" Loaded="Window_Loaded" Icon="/Collect;component/icon.ico">
 
+    <Window.Resources>
+        <local:VolumeConverter x:Key="volumeConverter"/>
+    </Window.Resources>
+
     <Grid>
         <Grid>
             <Grid.ColumnDefinitions>
@@ -34,9 +38,10 @@
                 </DataGrid.CellStyle>
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Тикер" Width="150" Binding="{Binding Path=Security}" IsReadOnly="True" FontWeight="Bold"/>
-                    <DataGridTextColumn Header="Данных принято" Width="124" Binding="{Binding Path=VolumeRecieved}" IsReadOnly="True" FontWeight="Bold"/>
-                    <DataGridTextColumn Header="Данных отдано" Width="124" Binding="{Binding Path=VolumeSent}" IsReadOnly="True" FontWeight="Bold"/>
-                    <DataGridTemplateColumn Width="100">
+                    <DataGridTextColumn Header="Данных принято" Width="124" Binding="{Binding Path=VolumeReceived}" IsReadOnly="True" FontWeight="Bold"/>
+                    <DataGridTextColumn Header="Данных отдано" Width="114" Binding="{Binding Path=VolumeSent, Converter={StaticResource volumeConverter}}" IsReadOnly="True" FontWeight="Bold"/>
+                    <DataGridTextColumn Header="Мин. объем" Width="92" Binding="{Binding Path=MinimumVolume}" FontWeight="Bold"/>
+                    <DataGridTemplateColumn Width="40">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" Width="100" Height="30">
